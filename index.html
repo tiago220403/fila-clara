@@ -1,0 +1,257 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fila Clara · Chamados</title>
+<style>
+  * { box-sizing: border-box }
+  :root { font: 16px/1.5 system-ui, sans-serif; color: #192a29; background: #f4f6f2 }
+  body { margin: 0 }
+  header { background: #173d36; color: #fff; padding: 2.5rem max(1.25rem, calc((100% - 68rem) / 2)) }
+  header h1 { font-size: clamp(2rem, 6vw, 3.25rem); margin: 0; line-height: 1.1 }
+  header p { margin: .65rem 0 0; color: #d5e9de }
+  main { max-width: 70.5rem; margin: auto; padding: 2rem 1.25rem; display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 3fr); gap: 1.5rem; align-items: start }
+  section { background: #fff; border: 1px solid #d6e1da; border-radius: 1rem; padding: 1.4rem }
+  h2 { font-size: 1.25rem; margin: 0 0 1rem }
+  label { display: block; font-weight: 600; margin-top: .9rem; margin-bottom: .3rem }
+  input, textarea, button { font: inherit }
+  input, textarea { width: 100%; padding: .65rem .75rem; border: 1px solid #839891; border-radius: .5rem; background: #fff; color: inherit }
+  textarea { resize: vertical; min-height: 7rem }
+  button { cursor: pointer; border: 1px solid #245646; border-radius: .5rem; padding: .55rem .85rem; font-weight: 600; background: #245646; color: #fff }
+  button:disabled { opacity: .65; cursor: wait }
+  :focus-visible { outline: 3px solid #1573aa; outline-offset: 3px }
+  form button { margin-top: 1rem }
+  .queue-header { display: flex; justify-content: space-between; align-items: baseline; gap: .75rem; flex-wrap: wrap }
+  .queue-header button { color: #245646; background: #fff }
+  .message { color: #435a53; margin: .65rem 0 0 }
+  .error { color: #a1241b }
+  ul { list-style: none; margin: 0; padding: 0 }
+  li { border-top: 1px solid #d6e1da; padding: 1rem 0; overflow-wrap: anywhere }
+  li:last-child { padding-bottom: 0 }
+  li h3 { margin: .35rem 0; font-size: 1rem }
+  li p { margin: .25rem 0; white-space: pre-wrap }
+  small { color: #435a53 }
+  .badge { display: inline-block; margin-left: .5rem; background: #e2f1e7; padding: .1rem .45rem; border-radius: .4rem; color: #245646 }
+  select { font: inherit; width: 100%; padding: .55rem; border: 1px solid #839891; border-radius: .5rem; background: #fff; color: inherit }
+  details { margin-top: .7rem }
+  summary { cursor: pointer; color: #245646; font-weight: 600 }
+  .triagem-campos { display: grid; grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr)); gap: 0 .75rem }
+  .sugerir { color: #245646; background: #fff; margin-right: .5rem }
+  .triagem-atual { color: #435a53; font-size: .9rem }
+  @media (max-width: 700px) { main { grid-template-columns: 1fr; padding-top: 1.25rem } }
+</style>
+</head>
+<body>
+<header><h1>Fila Clara</h1><p>Central de chamados de suporte</p></header>
+<main>
+  <section aria-labelledby="novo">
+    <h2 id="novo">Novo chamado</h2>
+    <form id="form">
+      <label for="titulo">Título</label>
+      <input id="titulo" name="titulo" required maxlength="120" placeholder="Ex. Pedido continua pendente">
+      <label for="descricao">Descrição</label>
+      <textarea id="descricao" name="descricao" required maxlength="2000" placeholder="Conte o que aconteceu e quem foi afetado."></textarea>
+      <button id="enviar">Abrir chamado</button>
+    </form>
+    <p id="form-status" class="message" role="status"></p>
+  </section>
+  <section aria-labelledby="fila">
+    <div class="queue-header">
+      <h2 id="fila">Fila de chamados</h2>
+      <button id="atualizar" type="button">Atualizar</button>
+    </div>
+    <p id="fila-status" class="message" role="status"></p>
+    <ul id="chamados"></ul>
+  </section>
+</main>
+<script>
+  const form = document.querySelector('#form')
+  const enviar = document.querySelector('#enviar')
+  const atualizar = document.querySelector('#atualizar')
+  const fila = document.querySelector('#chamados')
+  const formStatus = document.querySelector('#form-status')
+  const filaStatus = document.querySelector('#fila-status')
+  const formatarData = new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short' })
+  let consultaAtual = 0
+
+  function informar(elemento, mensagem, erro = false) {
+    elemento.textContent = mensagem
+    elemento.classList.toggle('error', erro)
+  }
+
+  function campoTriagem(nome, rotulo, opcoes, valor) {
+    const grupo = document.createElement('div')
+    const label = document.createElement('label')
+    label.textContent = rotulo
+    const select = document.createElement('select')
+    select.name = nome
+    select.required = true
+    select.add(new Option('Selecione', ''))
+    for (const opcao of opcoes) select.add(new Option(opcao, opcao))
+    select.value = valor ?? ''
+    label.append(select)
+    grupo.append(label)
+    return grupo
+  }
+
+  function editorTriagem(chamado, status) {
+    const detalhes = document.createElement('details')
+    const resumo = document.createElement('summary')
+    const atual = document.createElement('p')
+    atual.className = 'triagem-atual'
+
+    function mostrarTriagem(dados) {
+      resumo.textContent = dados.categoria ? 'Editar triagem' : 'Triar chamado'
+      atual.textContent = dados.categoria ? dados.categoria + ' · Prioridade ' + dados.prioridade.toLowerCase() : ''
+    }
+    mostrarTriagem(chamado)
+
+    const formulario = document.createElement('form')
+    const campos = document.createElement('fieldset')
+    campos.className = 'triagem-campos'
+    const legenda = document.createElement('legend')
+    legenda.textContent = 'Classificação do chamado #' + chamado.id
+    campos.append(
+      legenda,
+      campoTriagem('categoria', 'Categoria', ['Pagamento', 'Acesso', 'Erro no sistema', 'Outro'], chamado.categoria),
+      campoTriagem('prioridade', 'Prioridade', ['Baixa', 'Média', 'Alta'], chamado.prioridade)
+    )
+    const botao = document.createElement('button')
+    botao.textContent = 'Salvar triagem'
+    const mensagem = document.createElement('p')
+    mensagem.className = 'message'
+    mensagem.setAttribute('role', 'status')
+    const sugerir = document.createElement('button')
+    sugerir.type = 'button'
+    sugerir.className = 'sugerir'
+    sugerir.textContent = 'Sugerir triagem'
+    const previa = document.createElement('p')
+    previa.className = 'message'
+    formulario.append(campos, sugerir, botao, previa, mensagem)
+
+    sugerir.addEventListener('click', async () => {
+      campos.disabled = botao.disabled = sugerir.disabled = true
+      informar(mensagem, 'Gerando sugestão…')
+      try {
+        const resposta = await fetch('/chamados/' + chamado.id + '/sugestao', { method: 'POST' })
+        const resultado = await resposta.json()
+        if (!resposta.ok) {
+          informar(mensagem, resultado.erro ?? 'Sugestão indisponível.', true)
+          return
+        }
+        formulario.elements.namedItem('categoria').value = resultado.categoria
+        formulario.elements.namedItem('prioridade').value = resultado.prioridade
+        const origem = resultado.origem === 'demo' ? 'Demonstração por regras' : 'Resumo sugerido pela IA'
+        previa.textContent = origem + ' — ' + resultado.resumo
+        informar(mensagem, 'Revise a categoria e a prioridade antes de salvar.')
+      } catch {
+        informar(mensagem, 'Não foi possível buscar a sugestão. Você ainda pode triar manualmente.', true)
+      } finally {
+        campos.disabled = botao.disabled = sugerir.disabled = false
+      }
+    })
+    const editor = document.createElement('div')
+    detalhes.append(resumo, formulario)
+    editor.append(atual, detalhes)
+
+    formulario.addEventListener('submit', async (evento) => {
+      evento.preventDefault()
+      if (botao.disabled) return
+      const dados = Object.fromEntries(new FormData(formulario))
+      campos.disabled = botao.disabled = sugerir.disabled = true
+      informar(mensagem, 'Salvando triagem…')
+      try {
+        const resposta = await fetch('/chamados/' + chamado.id + '/triagem', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(dados)
+        })
+        const resultado = await resposta.json()
+        if (!resposta.ok) {
+          informar(mensagem, resultado.erro ?? 'Não foi possível salvar a triagem.', true)
+          return
+        }
+        status.textContent = 'Triado'
+        mostrarTriagem(resultado)
+        informar(mensagem, 'Triagem salva.')
+        if (!detalhes.isConnected) await carregarFila()
+      } catch {
+        informar(mensagem, 'Não foi possível confirmar. Você pode tentar salvar novamente.', true)
+      } finally {
+        campos.disabled = botao.disabled = sugerir.disabled = false
+      }
+    })
+
+    return editor
+  }
+
+  function itemChamado(chamado) {
+    const item = document.createElement('li')
+    const detalhes = document.createElement('small')
+    detalhes.textContent = `#${chamado.id} · ${formatarData.format(new Date(chamado.criadoEm))}`
+    const status = document.createElement('span')
+    status.className = 'badge'
+    status.textContent = ({ aberto: 'Aberto', triado: 'Triado' })[chamado.status] ?? chamado.status
+    const titulo = document.createElement('h3')
+    titulo.textContent = chamado.titulo
+    const descricao = document.createElement('p')
+    descricao.textContent = chamado.descricao
+    item.append(detalhes, status, titulo, descricao, editorTriagem(chamado, status))
+    return item
+  }
+
+  async function carregarFila() {
+    const consulta = ++consultaAtual
+    atualizar.disabled = true
+    informar(filaStatus, 'Carregando chamados…')
+    try {
+      const resposta = await fetch('/chamados', { cache: 'no-store' })
+      if (!resposta.ok) throw new Error('Falha ao carregar')
+      const chamados = await resposta.json()
+      if (consulta !== consultaAtual) return
+      fila.replaceChildren(...chamados.map(itemChamado))
+      informar(filaStatus, chamados.length ? '' : 'Nenhum chamado na fila.')
+    } catch {
+      if (consulta === consultaAtual) {
+        informar(filaStatus, 'Não foi possível carregar a fila. Use Atualizar para tentar novamente.', true)
+      }
+    } finally {
+      if (consulta === consultaAtual) atualizar.disabled = false
+    }
+  }
+
+  form.addEventListener('submit', async (evento) => {
+    evento.preventDefault()
+    if (enviar.disabled) return
+    const dados = Object.fromEntries(new FormData(form))
+    for (const campo of form.querySelectorAll('input, textarea')) campo.readOnly = true
+    enviar.disabled = true
+    informar(formStatus, 'Salvando chamado…')
+    try {
+      const resposta = await fetch('/chamados', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(dados)
+      })
+      const chamado = await resposta.json()
+      if (!resposta.ok) {
+        informar(formStatus, chamado.erro ?? 'Não foi possível salvar o chamado.', true)
+        return
+      }
+      form.reset()
+      informar(formStatus, `Chamado #${chamado.id} aberto com sucesso.`)
+      await carregarFila()
+    } catch {
+      informar(formStatus, 'Não foi possível confirmar o envio. Confira a fila antes de tentar novamente.', true)
+    } finally {
+      enviar.disabled = false
+      for (const campo of form.querySelectorAll('input, textarea')) campo.readOnly = false
+    }
+  })
+
+  atualizar.addEventListener('click', carregarFila)
+  carregarFila()
+</script>
+</body>
+</html>

@@ -1,0 +1,137 @@
+[
+  {
+    "id": 1,
+    "titulo": "Pix confirmado",
+    "descricao": "Uma cliente pagou via Pix, mas o pedido permanece pendente.",
+    "esperado": {
+      "categoria": "Pagamento",
+      "prioridade": "Média"
+    }
+  },
+  {
+    "id": 2,
+    "titulo": "Checkout indisponível",
+    "descricao": "Todos os clientes recebem erro ao tentar finalizar o pagamento.",
+    "esperado": {
+      "categoria": "Pagamento",
+      "prioridade": "Alta"
+    }
+  },
+  {
+    "id": 3,
+    "titulo": "Prazo de estorno",
+    "descricao": "O valor foi devolvido ontem. O cliente só quer saber quando aparece no extrato.",
+    "esperado": {
+      "categoria": "Pagamento",
+      "prioridade": "Baixa"
+    }
+  },
+  {
+    "id": 4,
+    "titulo": "Código de acesso expirado",
+    "descricao": "Uma colaboradora precisa gerar outro código. Os demais ainda conseguem entrar.",
+    "esperado": {
+      "categoria": "Acesso",
+      "prioridade": "Média"
+    }
+  },
+  {
+    "id": 5,
+    "titulo": "Equipe sem login",
+    "descricao": "O login está indisponível para todo o atendimento e ninguém consegue iniciar o turno.",
+    "esperado": {
+      "categoria": "Acesso",
+      "prioridade": "Alta"
+    }
+  },
+  {
+    "id": 6,
+    "titulo": "Dúvida sobre senha",
+    "descricao": "O usuário consegue entrar e quer saber se pode trocar a senha periodicamente.",
+    "esperado": {
+      "categoria": "Acesso",
+      "prioridade": "Baixa"
+    }
+  },
+  {
+    "id": 7,
+    "titulo": "Relatório com erro",
+    "descricao": "Um relatório mensal falha ao exportar, mas a consulta continua funcionando na tela.",
+    "esperado": {
+      "categoria": "Erro no sistema",
+      "prioridade": "Média"
+    }
+  },
+  {
+    "id": 8,
+    "titulo": "Painel travou no início do turno",
+    "descricao": "Nenhum operador consegue abrir o painel. A expedição está parada.",
+    "esperado": {
+      "categoria": "Erro no sistema",
+      "prioridade": "Alta"
+    }
+  },
+  {
+    "id": 9,
+    "titulo": "Texto cortado no rodapé",
+    "descricao": "Em uma resolução pequena, o texto do rodapé perde a última letra. As funções continuam disponíveis.",
+    "esperado": {
+      "categoria": "Erro no sistema",
+      "prioridade": "Baixa"
+    }
+  },
+  {
+    "id": 10,
+    "titulo": "Horário do suporte",
+    "descricao": "Cliente pergunta se o suporte responde aos sábados.",
+    "esperado": {
+      "categoria": "Outro",
+      "prioridade": "Baixa"
+    }
+  },
+  {
+    "id": 11,
+    "titulo": "Atualizar endereço de entrega",
+    "descricao": "Uma pessoa precisa corrigir o endereço de um pedido antes da expedição.",
+    "esperado": {
+      "categoria": "Outro",
+      "prioridade": "Média"
+    }
+  },
+  {
+    "id": 12,
+    "titulo": "Habilitar perfil de supervisor",
+    "descricao": "O perfil atual entra normalmente, mas não permite aprovar pedidos. Um supervisor continua disponível.",
+    "esperado": {
+      "categoria": "Acesso",
+      "prioridade": "Média"
+    }
+  },
+  {
+    "id": 13,
+    "titulo": "Planilha travou ao abrir",
+    "descricao": "A planilha apresenta erro na exportação. Os dados de pagamento continuam corretos na tela.",
+    "esperado": {
+      "categoria": "Erro no sistema",
+      "prioridade": "Média"
+    }
+  },
+  {
+    "id": 14,
+    "titulo": "Cobrança duplicada",
+    "descricao": "Uma cliente viu duas cobranças para um pedido. A loja ainda consegue receber pedidos normalmente.",
+    "esperado": {
+      "categoria": "Pagamento",
+      "prioridade": "Média"
+    }
+  },
+  {
+    "id": 15,
+    "titulo": "Solicitação de segunda via do manual",
+    "descricao": "Cliente pede o manual de treinamento para consultar no próximo mês.",
+    "esperado": {
+      "categoria": "Outro",
+      "prioridade": "Baixa"
+    }
+  }
+]
