@@ -1,4 +1,4 @@
-# Fila Clara · Etapa 5
+# Fila Clara
 
 Interface web e API local de chamados em JavaScript. Use Node.js 22.13 ou superior.
 
